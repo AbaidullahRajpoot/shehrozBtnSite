@@ -10,7 +10,7 @@ const { secret } = require("../config/secret");
 //   try {
 //     // Check if the request is from a normal signup or Google sign-in
 //     const { email, name, password } = req.body;
-    
+
 //     // For Google users, we might not have a password, handle accordingly
 //     const user = await User.findOne({ email });
 
@@ -26,7 +26,7 @@ const { secret } = require("../config/secret");
 //       };
 
 //       const savedUser = await User.create(newUserData);
-      
+
 //       // You can add any additional logic, like sending a verification email, etc.
 
 //       res.status(201).json({
@@ -43,7 +43,7 @@ const { secret } = require("../config/secret");
 // module.exports.signup = async (req, res, next) => {
 //   try {
 //     const { email, name, password, isGoogleSignUp } = req.body;
-    
+
 //     const user = await User.findOne({ email });
 //     if (user) {
 //       return res.send({ status: "failed", message: "Email already exists" });
@@ -58,7 +58,7 @@ const { secret } = require("../config/secret");
 //     };
 
 //     const savedUser = await User.create(newUserData);
-    
+
 //     if (!isGoogleSignUp) {
 //       // Generate email verification token for manual sign-up
 //       const token = savedUser.generateConfirmationToken();
@@ -91,7 +91,7 @@ const { secret } = require("../config/secret");
 //       message: "User created successfully. Please verify your email.",
 //       data: savedUser
 //     });
-    
+
 //   } catch (error) {
 //     console.log('sign up err', error);
 //     next(error);
@@ -100,7 +100,7 @@ const { secret } = require("../config/secret");
 // module.exports.signup = async (req, res, next) => {
 //   try {
 //     const { email, name, password, isGoogleSignUp } = req.body;
-    
+
 //     const user = await User.findOne({ email });
 //     if (user) {
 //       return res.send({ status: "failed", message: "Email already exists" });
@@ -115,7 +115,7 @@ const { secret } = require("../config/secret");
 //     };
 
 //     const savedUser = await User.create(newUserData);
-    
+
 //     if (!isGoogleSignUp) {
 //       // Generate email verification token for manual sign-up
 //       const token = savedUser.generateConfirmationToken();
@@ -148,7 +148,7 @@ const { secret } = require("../config/secret");
 //       message: "User created successfully. Please verify your email.",
 //       data: savedUser
 //     });
-    
+
 //   } catch (error) {
 //     console.log('sign up err', error);
 //     next(error);
@@ -173,9 +173,8 @@ module.exports.signup = async (req, res, next) => {
     };
 
     const savedUser = await User.create(newUserData);
-    
+
     if (!isGoogleSignUp) {
-      console.log("enter")
       // Generate email verification token for manual sign-up
       const token = savedUser.generateConfirmationToken();
       savedUser.confirmationToken = token;
@@ -201,13 +200,18 @@ module.exports.signup = async (req, res, next) => {
       const message = "Please check your email to verify!";
       sendEmail(mailData, res, message);
     }
+    else {
+      const token = savedUser.generateConfirmationToken();
+      savedUser.confirmationToken = token;
+      savedUser.confirmationTokenExpires = new Date(Date.now() + 15 * 60 * 1000); // Token expires in 15 minutes
+      await savedUser.save({ validateBeforeSave: true });
+      res.status(201).json({
+        status: "success",
+        message: "User created successfully. Please verify your email.",
+        data: savedUser
+      });
+    }
 
-    // res.status(201).json({
-    //   status: "success",
-    //   message: "User created successfully. Please verify your email.",
-    //   data: savedUser
-    // });
-    
   } catch (error) {
     console.log('sign up err', error);
     next(error);
@@ -232,15 +236,15 @@ module.exports.signup = async (req, res, next) => {
 //         subject: "Verify Your Email",
 //         html: `<h2>Hello ${req.body.name}</h2>
 //         <p>Verify your email address to complete the signup and login into your <strong>zoelit</strong> account.</p>
-  
+
 //           <p>This link will expire in <strong> 15 minute</strong>.</p>
-  
+
 //           <p style="margin-bottom:20px;">Click this link for active your account</p>
-  
+
 //           <a href="${secret.client_url}/email-verify/${token}" style="background:#22c55e;color:white;border:1px solid #22c55e; padding: 10px 15px; border-radius: 4px; text-decoration:none;">Verify Account</a>
-  
+
 //           <p style="margin-top: 35px;">If you did not initiate this request, please contact us immediately at support@zoelit.com</p>
-  
+
 //           <p style="margin-bottom:0px;">Thank you</p>
 //           <strong>zoelit Team</strong>
 //            `,
@@ -496,7 +500,7 @@ module.exports.changePassword = async (req, res) => {
       return res.status(401).json({ message: "Incorrect current password" });
     }
     const hashedPassword = bcrypt.hashSync(req.body.newPassword);
-    await User.updateOne({email:email},{password:hashedPassword})
+    await User.updateOne({ email: email }, { password: hashedPassword })
 
     res.status(200).json({ message: "Password changed successfully" });
   } catch (err) {
@@ -514,7 +518,7 @@ module.exports.updateUser = async (req, res) => {
       user.email = req.body.email;
       user.phone = req.body.phone;
       user.address = req.body.address;
-      user.bio = req.body.bio; 
+      user.bio = req.body.bio;
       const updatedUser = await user.save();
       const token = generateToken(updatedUser);
       res.status(200).json({
